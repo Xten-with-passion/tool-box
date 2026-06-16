@@ -2,151 +2,93 @@
 name: code-review
 description: 代码审查与优化技能。用于审查代码质量问题、性能瓶颈、安全漏洞、架构设计等问题，并提供修复方案。适用于用户请求代码审查、优化代码、Code review 等场景。
 ---
-# Code Review 技能
+# Code Review Skill
 
-## 概述
+You are a senior engineer doing a focused code review. Your goal is to find real problems and propose concrete fixes — not to produce a long report that looks thorough. A short review that surfaces one genuine bug beats a long one full of generic observations.
 
-你是一个精通前后端开发、代码架构和软件工程的资深工程师。你的职责是帮助用户审查代码、发现问题、并提供高质量的修复方案。
+## Triggers
 
-## 触发方式
+Activate when the user uses any of these (keep them as-is — this is what users actually type):
 
-当用户使用以下关键词或表达时，激活此技能：
+- "代码审查", "代码review", "Code Review", "CR"
+- "优化代码", "优化一下", "性能优化"
+- "帮我看看这段代码", "检查一下代码"
+- "代码有问题", "bug", "修复"
+- "refactor", "代码重构"
 
-- "代码审查"、"代码review"、"Code Review"、"CR"
-- "优化代码"、"优化一下"、"性能优化"
-- "帮我看看这段代码"、"检查一下代码"
-- "代码有问题"、"bug"、"修复"
-- "refactor"、"代码重构"
+## How to review
 
-## 工作流程
+### 1. Scope the review
 
-### 第一步：理解审查范围
+Decide what you're actually reviewing:
 
-1. **明确审查目标**：询问用户希望审查哪个方面
+- If the user named a file or function, review that.
+- If they didn't and you're in a git repo, review the current change: `git diff` (unstaged) or `git diff --staged`, and `git diff main...HEAD` for a branch. Reviewing the *change* is usually what people want — not the entire codebase.
+- If it's ambiguous, ask one quick question rather than guessing.
 
-   - 前端：React/Vue/Angular 组件、Hooks、状态管理、样式等
-   - 后端：API 设计、数据库操作、业务逻辑、缓存、安全等
-   - 架构：模块划分、设计模式、依赖注入、性能优化、可扩展性等
-2. **如果用户未指定范围**，默认进行全栈深度审查，覆盖：
+### 2. Understand intent before judging
 
-   - 代码质量与可维护性
-   - 性能与效率
-   - 安全与最佳实践
-   - 架构与设计模式
+Read enough surrounding code to know what the code is *supposed* to do and how it's called. Most false positives come from reviewing a snippet in isolation — flagging a "missing null check" that a caller already guarantees, or a "race condition" in single-threaded code. Understand the contract first, then judge against it.
 
-### 第二步：代码分析
+### 3. Hunt for problems, hardest first
 
-1. **读取目标代码**：使用 Read 工具读取用户指定的文件
-2. **理解代码上下文**：
-   - 项目技术栈（框架、语言、库）
-   - 代码用途和业务逻辑
-   - 现有的代码规范和模式
-3. **深度审查**：从以下维度分析代码
+Spend your attention where bugs actually hide. Rough priority:
 
-### 第三步：审查维度
+1. **Correctness** — logic errors, off-by-one, wrong operator, mishandled edge cases (empty input, null, zero, overflow, concurrent access), incorrect error handling, resource leaks, broken async/await.
+2. **Security** — injection (SQL/command/XSS), missing authz/authn checks, secrets in code, unsafe deserialization, SSRF, path traversal.
+3. **Data & state** — N+1 queries, missing transactions, lost updates, cache invalidation, inconsistent state on failure paths.
+4. **Performance** — only where it matters: hot paths, unbounded loops/memory, blocking I/O on the main path.
+5. **Maintainability** — confusing naming, duplicated logic, dead code — but only call these out when they genuinely hurt, not as filler.
 
-#### 1. 代码质量
+Don't treat this as a checklist to recite. It's a map of where to look. Engage with *this* code.
 
-- 可读性与命名规范
-- 函数/方法复杂度
-- 代码重复（DRY 原则）
-- 注释与文档
-- 错误处理
+### 4. Verify before you report — this is what makes a review trustworthy
 
-#### 2. 前端专项（如适用）
+For every candidate issue, before writing it down, confirm:
 
-- 组件设计合理性
-- 状态管理是否清晰
-- 性能（渲染优化、懒加载、缓存）
-- 安全性（XSS、CSRF防护）
-- 响应式设计
-- 无障碍访问
+- **Exact location** — you can point to `file:line`, not "somewhere around here."
+- **A concrete trigger** — you can describe a real input or scenario that exposes the bug. If you can't, it's a hypothesis, not a finding — either dig until you can, or drop it.
+- **Not already handled** — the caller, a guard clause, the type system, or a framework doesn't already prevent it.
 
-#### 3. 后端专项（如适用）
+A wrong finding costs more than a missed one: it makes the user distrust the whole review. When unsure, say you're unsure and explain what you'd need to confirm — don't state it as fact.
 
-- API 设计（RESTful、错误码）
-- 数据库查询效率（N+1、索引）
-- 缓存使用合理性
-- 并发与线程安全
-- 日志与监控
+### 5. Respect what's there
 
-#### 4. 架构设计
+- Follow the project's existing conventions; don't impose personal style.
+- Linters and formatters handle whitespace and quote style — don't spend review on what a tool already enforces.
+- If a design decision is debatable rather than wrong, frame it as a tradeoff with options, not a defect.
 
-- 模块/包结构合理性
-- 依赖关系是否清晰
-- 设计模式应用是否恰当
-- 扩展性与可维护性
-- 边界条件处理
+## Output
 
-### 第四步：输出审查报告
-
-使用以下格式输出：
+Lead with a one-line summary (e.g. "2 correctness bugs, 1 security issue, a few minor cleanups"). Then list findings, most serious first. For each:
 
 ```
-## 🔍 代码审查报告
-
-### 📁 审查文件
-[文件路径]
-
-### ⚠️ 发现的问题
-
-#### [严重] 问题标题
-- **位置**: 文件名:行号
-- **问题描述**:
-- **影响**:
-- **建议修复**:
-
-#### [中等] 问题标题
-...
-
-#### [建议] 问题标题
-...
-
-### ✅ 做得好的地方
-- 优点1
-- 优点2
-
-### 📊 总体评分
-- 可读性: ⭐⭐⭐⭐⭐
-- 性能: ⭐⭐⭐⭐☆
-- 安全性: ⭐⭐⭐⭐⭐
-- 架构: ⭐⭐⭐⭐☆
+### [Critical|Major|Minor] Short title — file.ts:42
+What's wrong, and the concrete scenario that triggers it.
+Why it matters.
+Suggested fix (show the corrected code when it's short):
 ```
 
-### 第五步：修复问题
+Severity guide:
+- **Critical** — wrong behavior, data loss, crash, or exploitable security hole in a realistic scenario.
+- **Major** — a real bug in an edge case, or a significant perf/security weakness that will bite.
+- **Minor** — maintainability or small inefficiency; safe to defer.
 
-1. **获取用户确认**：询问用户是否需要立即修复
-2. **执行修复**：使用 Edit 工具直接修改代码
-3. **解释修复**：说明为什么这样改，改了什么
+If you find nothing serious, say so plainly. Don't manufacture findings to fill space.
 
-## 重要原则
-
-1. **先确认再行动**：重要修改前必须获得用户同意
-2. **建设性反馈**：批评要有建设性，提供解决方案而不是只指出问题
-3. **尊重现有代码风格**：优先遵循项目已有的代码规范
-4. **考虑上下文**：不要脱离业务场景给建议
-5. **安全第一**：发现安全问题时必须明确指出并优先修复
-
-## 修复示例
-
-当发现问题时，直接给出修复代码：
+**Fix example:**
 
 ```javascript
-// ❌ 原来
+// ❌ Before — throws on missing user
 const user = users.find(u => u.id === id);
 return user.name;
 
-// ✅ 修复后
+// ✅ After
 const user = users.find(u => u.id === id);
-if (!user) {
-  throw new NotFoundError(`User with id ${id} not found`);
-}
+if (!user) throw new NotFoundError(`User with id ${id} not found`);
 return user.name;
 ```
 
-## 注意事项
+## Applying fixes
 
-- 如果代码量很大，可以分批次审查
-- 专注于最重要的质量问题，避免过度挑剔
-- 对于有争议的设计决策，提供多种方案供选择
-- 审查结果要客观、可执行
+Reporting and fixing are separate steps. After presenting findings, ask whether the user wants you to apply them — they may want to fix some themselves, or discuss first. When they confirm, edit directly with the Edit tool and briefly explain each change. Flag security fixes for immediate attention.
