@@ -1,0 +1,4 @@
+interface:
+  display_name: "通用需求拆解"
+  short_description: "结合目标、现状和约束拆分可验收任务，区分复用与新增并评估依赖及工期"
+  default_prompt: "使用 $requirement-breakdown，根据这份需求及可用项目资料拆分实施任务，明确范围、依据、责任、依赖和验收；需要时给出排期。"
